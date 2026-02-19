@@ -1,2 +1,3 @@
 nn-learning/data-sampling/datasets/*
 *.csv
+__pycache__

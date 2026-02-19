@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  neural-jsdf:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: neural-jsdf
+
+    network_mode: host
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+    volumes:
+      - ../:/root/Neural-JSDF
+
+    working_dir: /root/Neural-JSDF
+
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+    stdin_open: true
+    tty: true

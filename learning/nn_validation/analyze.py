@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # load data.csv
-data = np.loadtxt('data.csv', delimiter=',')
+data = np.loadtxt('data_.csv', delimiter=',')
 
 #N = 10000
 N = data.shape[0]
