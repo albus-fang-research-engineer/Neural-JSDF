@@ -45,7 +45,7 @@ def plot_samples(data, title="Sampled Points"):
     plt.title(title)
     plt.xlabel("x [m]")
     plt.ylabel("y [m]")
-    plt.savefig("plot.png")
+    plt.savefig("plots/sampled_points/plot.png")
     # plt.show()
 
 
@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
     # If this file contains multiple robot poses,
     # pick one pose block to visualize:
-    N = 10000  # points per pose (must match your generator)
+    N = 20000  # points per pose (must match your generator)
     sample_block = data[:N]
 
     plot_samples(sample_block, title="TurtleBot 2D Sampling")

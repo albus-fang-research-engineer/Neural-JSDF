@@ -11,6 +11,6 @@ sampler = TurtleBot2DSampler(
 )
 
 sampler.generate_batch(
-    batch_size=10000,          # number of robot poses
-    points_per_pose=10000
+    batch_size=400,          # number of robot poses
+    points_per_pose=500
 )

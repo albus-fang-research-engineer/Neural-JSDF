@@ -43,7 +43,7 @@ class TurtleBot2DSampler:
 
     def generate_batch(self,
                        batch_size=10000,
-                       near_surface_ratio=0.7,
+                       near_surface_ratio=0.5,
                        points_per_pose=10000):
 
         data = []
