@@ -109,7 +109,7 @@ plt.grid(True)
 plt.tight_layout()
 plt.savefig("pred_vs_gt.png", dpi=200)
 
-print("📊 Saved: pred_vs_gt.png")
+print("Saved: pred_vs_gt.png")
 
 
 NUM_POSES = 4
@@ -149,7 +149,7 @@ for ax in axes.flat:
         points[:, 0],
         points[:, 1],
         c=error,
-        cmap="inferno",
+        cmap="coolwarm",
         s=3
     )
 
@@ -163,6 +163,64 @@ for ax in axes.flat:
     ax.set_ylim(-2, 2)
     ax.grid(True)
 
-fig.colorbar(sc, ax=axes.ravel().tolist(), label="|Prediction Error| [m]")
-plt.tight_layout()
+fig.colorbar(sc, ax=axes.ravel().tolist(), location="right", label="|Prediction Error| [m]")
+# plt.tight_layout()
 plt.savefig("spatial_error.png", dpi=200)
+
+# -------------------------------------------------
+# QUALITATIVE CHECK: 5 poses, 1 point each
+# -------------------------------------------------
+NUM_TEST = 5
+
+fig, axes = plt.subplots(1, NUM_TEST, figsize=(4 * NUM_TEST, 4))
+
+if NUM_TEST == 1:
+    axes = [axes]
+
+for ax in axes:
+
+    # random robot pose
+    robot_xy = np.random.uniform(-1.5, 1.5, size=2)
+
+    # one random query point
+    point = np.random.uniform(-2, 2, size=(1, 2))
+
+    # ground truth
+    gt = gt_signed_distance(robot_xy, point)[0]
+
+    # model input
+    x_input = np.concatenate(
+        [robot_xy[None, :], point],
+        axis=1
+    )
+
+    with torch.no_grad():
+        pred = model(
+            torch.tensor(x_input, dtype=torch.float32, device=device)
+        ).cpu().numpy().squeeze()
+
+    # ----------------------------
+    # PLOT
+    # ----------------------------
+    ax.scatter(point[0, 0], point[0, 1], s=80)
+
+    circle = plt.Circle(robot_xy, RADIUS, fill=False, linewidth=2)
+    ax.add_patch(circle)
+
+    ax.text(
+        point[0, 0],
+        point[0, 1],
+        f"GT: {gt:.3f}\nPred: {pred:.3f}",
+        fontsize=9,
+        verticalalignment="bottom"
+    )
+
+    ax.set_title(f"Robot @ {robot_xy.round(2)}")
+    ax.set_aspect("equal")
+    ax.set_xlim(-2, 2)
+    ax.set_ylim(-2, 2)
+    ax.grid(True)
+
+plt.tight_layout()
+plt.savefig("five_random_pose_single_point.png", dpi=200)
+print("Saved: five_random_pose_single_point.png")
