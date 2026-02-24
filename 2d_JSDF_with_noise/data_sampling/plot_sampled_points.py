@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
     # If this file contains multiple robot poses,
     # pick one pose block to visualize:
-    N = 20000  # points per pose (must match your generator)
+    N = 500  # points per pose (must match your generator)
     sample_block = data[:N]
 
     plot_samples(sample_block, title="TurtleBot 2D Sampling")
