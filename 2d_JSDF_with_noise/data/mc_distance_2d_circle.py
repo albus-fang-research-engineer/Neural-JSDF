@@ -96,6 +96,28 @@ def render_depth(pose, obstacles, fov, n_rays):
 
     return depths, angles
 
+def render_depth_no_world_boundary(pose, obstacles, fov, n_rays):
+
+    x, y, theta = pose
+    origin = np.array([x, y])
+
+    angles = np.linspace(-fov/2, fov/2, n_rays) + theta
+    depths = np.full(n_rays, np.nan)   # default = no return
+
+    for i, a in enumerate(angles):
+
+        direction = np.array([np.cos(a), np.sin(a)])
+
+        d_obs = np.inf
+
+        for box in obstacles:
+            d = ray_box_intersection(origin, direction, box)
+            d_obs = min(d_obs, d)
+
+        if np.isfinite(d_obs):
+            depths[i] = d_obs   # only real obstacle hits
+
+    return depths, angles
 
 # ============================================================
 # DISTANCE TO CIRCLE ROBOT
