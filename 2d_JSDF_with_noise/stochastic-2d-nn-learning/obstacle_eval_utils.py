@@ -174,7 +174,7 @@ def demo_obstacles_and_points(model, device,
     ax.grid(True)
 
     plt.tight_layout()
-    plt.savefig("deterministic_plots/obstacles_100pts_gt_pred.png", dpi=200)
+    plt.savefig("stochastic_plots/obstacles_100pts_gt_pred.png", dpi=200)
     print("Saved: obstacles_100pts_gt_pred.png")
 
     return robot_xy, points, gt, pred
@@ -246,7 +246,7 @@ def demo_obstacles_and_20_points(model, device, robot_xy=None, n_points=20, avoi
     ax.set_ylim(-2, 2)
     ax.grid(True)
     plt.tight_layout()
-    plt.savefig("deterministic_plots/obstacles_20pts_gt_pred.png", dpi=200)
+    plt.savefig("stochastic_plots/obstacles_20pts_gt_pred.png", dpi=200)
     print("Saved: obstacles_20pts_gt_pred.png")
 
     return robot_xy, points, gt, pred
@@ -323,7 +323,7 @@ def dense_obstacle_evaluation(model, device,
     ax.grid(True)
 
     plt.tight_layout()
-    plt.savefig("deterministic_plots/dense_obstacle_error.png", dpi=200)
+    plt.savefig("stochastic_plots/dense_obstacle_error.png", dpi=200)
 
     print("Dense MAE:", np.mean(error))
     print("Dense RMSE:", np.sqrt(np.mean((pred - gt) ** 2)))
@@ -453,7 +453,7 @@ def demo_visible_obstacles_and_points(model, device,
                                       low=-2,
                                       high=2,
                                       annotate=True,
-                                      save_path="deterministic_plots/visible_obstacles_points_gt_pred.png",
+                                      save_path="stochastic_plots/visible_obstacles_points_gt_pred.png",
                                       max_tries=400000):
     """
     Plots obstacles + robot + points, but ONLY evaluates/plots GT+Pred for VISIBLE points.

@@ -16,6 +16,7 @@ def gaussian_nll(mu, logvar, target):
     )
 
 def kl_to_prior(mu, logvar, prior_mu, prior_var):
+    prior_var = torch.clamp(prior_var, min=1e-8)
     var = torch.exp(logvar)
 
     return 0.5 * (
@@ -95,8 +96,8 @@ class RobotSdfCollisionNet():
                 q.requires_grad = True
                 q.grad = None
 
-                q_scale = scale_to_net(q, self.norm_dict, 'x')
-
+                # q_scale = scale_to_net(q, self.norm_dict, 'x')
+                q_scale = q
                 pred = self.model(q_scale)
 
                 mu, logvar = torch.chunk(pred, 2, dim=-1)
