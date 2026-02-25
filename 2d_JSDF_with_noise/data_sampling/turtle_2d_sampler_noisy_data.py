@@ -49,14 +49,31 @@ class TurtleBot2DNoisyGeometryDataset:
     # --------------------------------------------------
     # Sensor noise model (applied to geometry point)
     # --------------------------------------------------
-
-    def compute_sigma(self, robot_xy, points):
-        ranges = np.linalg.norm(points - robot_xy, axis=1)
+    def compute_sigma(self, ranges):
         return self.a + self.b * ranges**2
 
-    def add_point_noise(self, points, sigma):
-        noise = np.random.normal(0.0, sigma[:, None], size=points.shape)
-        return points + noise
+
+    def add_range_noise(self, robot_xy, points_gt):
+        vec = points_gt - robot_xy
+        ranges = np.linalg.norm(vec, axis=1)
+        ranges = np.clip(ranges, 1e-6, None)
+        # unit ray directions
+        dirs = vec / ranges[:, None]
+
+        sigma = self.compute_sigma(ranges)
+
+        noisy_ranges = ranges + np.random.normal(0.0, sigma)
+
+        points_noisy = robot_xy + dirs * noisy_ranges[:, None]
+
+        return points_noisy, sigma
+    # def compute_sigma(self, robot_xy, points):
+    #     ranges = np.linalg.norm(points - robot_xy, axis=1)
+    #     return self.a + self.b * ranges**2
+
+    # def add_point_noise(self, points, sigma):
+    #     noise = np.random.normal(0.0, sigma[:, None], size=points.shape)
+    #     return points + noise
 
     # --------------------------------------------------
     # Sampling
@@ -110,10 +127,14 @@ class TurtleBot2DNoisyGeometryDataset:
 
             gt_distance = self.signed_distance(robot_xy, points_gt)
 
-            sigma = self.compute_sigma(robot_xy, points_gt)
-            var = sigma**2
+            # sigma = self.compute_sigma(robot_xy, points_gt)
+            # var = sigma**2
 
-            points_noisy = self.add_point_noise(points_gt, sigma)
+            # points_noisy = self.add_point_noise(points_gt, sigma)
+            ranges = np.linalg.norm(points_gt - robot_xy, axis=1)
+
+            points_noisy, sigma = self.add_range_noise(robot_xy, points_gt)
+            var = sigma**2
 
             noisy_distance = self.signed_distance(robot_xy, points_noisy)
 
