@@ -3,7 +3,7 @@ import time
 from pathlib import Path
 
 
-class TurtleBot2DNoisyGeometryDataset:
+class TurtleBot2DGeometryDataset:
 
     def __init__(
         self,
@@ -11,8 +11,7 @@ class TurtleBot2DNoisyGeometryDataset:
         radius=0.105,
         xlim=(-2, 2),
         ylim=(-2, 2),
-        noise_a=0.002,
-        noise_b=0.0015,
+        dist_sigma=0.02,
         seed=None,
     ):
         self.dataset_path = Path(dataset_path)
@@ -21,9 +20,7 @@ class TurtleBot2DNoisyGeometryDataset:
         self.r = radius
         self.xlim = xlim
         self.ylim = ylim
-
-        self.a = noise_a
-        self.b = noise_b
+        self.sigma = dist_sigma
 
         if seed is not None:
             np.random.seed(seed)
@@ -38,56 +35,30 @@ class TurtleBot2DNoisyGeometryDataset:
         return np.array([x, y])
 
     # --------------------------------------------------
-    # Geometry
+    # Signed distance
     # --------------------------------------------------
 
     def signed_distance(self, robot_xy, points):
-        diff = points - robot_xy
-        dist = np.linalg.norm(diff, axis=1)
-        return dist - self.r
+        return np.linalg.norm(points - robot_xy, axis=1) - self.r
 
     # --------------------------------------------------
-    # Sensor noise model (applied to geometry point)
+    # Point sampling
     # --------------------------------------------------
-    def compute_sigma(self, ranges):
-        return self.a + self.b * ranges**2
-
-
-    def add_range_noise(self, robot_xy, points_gt):
-        vec = points_gt - robot_xy
-        ranges = np.linalg.norm(vec, axis=1)
-        ranges = np.clip(ranges, 1e-6, None)
-        # unit ray directions
-        dirs = vec / ranges[:, None]
-
-        sigma = self.compute_sigma(ranges)
-
-        noisy_ranges = ranges + np.random.normal(0.0, sigma)
-
-        points_noisy = robot_xy + dirs * noisy_ranges[:, None]
-
-        return points_noisy, sigma
-    # def compute_sigma(self, robot_xy, points):
-    #     ranges = np.linalg.norm(points - robot_xy, axis=1)
-    #     return self.a + self.b * ranges**2
-
-    # def add_point_noise(self, points, sigma):
-    #     noise = np.random.normal(0.0, sigma[:, None], size=points.shape)
-    #     return points + noise
-
-    # --------------------------------------------------
-    # Sampling
-    # --------------------------------------------------
-
-    def sample_points_near_surface(
-        self, robot_xy, num_points, offset_range=(-0.03, 0.2)
-    ):
+    def sample_points_interior(self, robot_xy, num_points):
         angles = np.random.uniform(0, 2 * np.pi, num_points)
 
-        offsets = np.random.uniform(
-            offset_range[0], offset_range[1], num_points
-        )
+        # sqrt for uniform area sampling
+        radii = self.r * np.sqrt(np.random.uniform(0.0, 1.0, num_points))
 
+        px = robot_xy[0] + radii * np.cos(angles)
+        py = robot_xy[1] + radii * np.sin(angles)
+
+        return np.stack([px, py], axis=1)
+    def sample_points_near_surface(
+        self, robot_xy, num_points, offset_range=(-0.06, 0.2)
+    ):
+        angles = np.random.uniform(0, 2 * np.pi, num_points)
+        offsets = np.random.uniform(offset_range[0], offset_range[1], num_points)
         radii = self.r + offsets
 
         px = robot_xy[0] + radii * np.cos(angles)
@@ -106,12 +77,13 @@ class TurtleBot2DNoisyGeometryDataset:
 
     def generate_batch(
         self,
-        batch_size=100,
+        batch_size=200,
         points_per_pose=500,
         near_surface_ratio=0.6,
     ):
 
         rows = []
+        var = self.sigma ** 2  # constant variance
 
         for _ in range(batch_size):
 
@@ -127,26 +99,19 @@ class TurtleBot2DNoisyGeometryDataset:
 
             gt_distance = self.signed_distance(robot_xy, points_gt)
 
-            # sigma = self.compute_sigma(robot_xy, points_gt)
-            # var = sigma**2
-
-            # points_noisy = self.add_point_noise(points_gt, sigma)
-            ranges = np.linalg.norm(points_gt - robot_xy, axis=1)
-
-            points_noisy, sigma = self.add_range_noise(robot_xy, points_gt)
-            var = sigma**2
-
-            noisy_distance = self.signed_distance(robot_xy, points_noisy)
+            noisy_distance = gt_distance + np.random.normal(
+                0.0, self.sigma, size=gt_distance.shape
+            )
 
             robot_repeat = np.repeat(robot_xy[None, :], len(points_gt), axis=0)
 
             row = np.concatenate(
                 [
-                    robot_repeat,
-                    points_noisy,
-                    noisy_distance[:, None],
-                    gt_distance[:, None],
-                    var[:, None],
+                    robot_repeat,                 # robot_x, robot_y
+                    points_gt,                   # point_x, point_y (GT!)
+                    noisy_distance[:, None],    # noisy distance
+                    gt_distance[:, None],       # GT distance
+                    np.full((len(points_gt), 1), var),  # constant variance
                 ],
                 axis=1,
             )
@@ -163,19 +128,3 @@ class TurtleBot2DNoisyGeometryDataset:
         print("Saved dataset:", data.shape)
 
         return data
-
-
-if __name__ == "__main__":
-
-    ds = TurtleBot2DNoisyGeometryDataset(
-        dataset_path="dataset_out",
-        noise_a=0.002,
-        noise_b=0.0015,
-        seed=0,
-    )
-
-    ds.generate_batch(
-        batch_size=200,
-        points_per_pose=512,
-        near_surface_ratio=0.7,
-    )

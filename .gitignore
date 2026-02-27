@@ -3,3 +3,4 @@ nn-learning/data-sampling/datasets/*
 __pycache__
 *.png
 *.npy
+*.bak
