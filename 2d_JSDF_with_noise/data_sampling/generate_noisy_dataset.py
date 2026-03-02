@@ -7,7 +7,8 @@ sampler = TurtleBot2DGeometryDataset(
     dataset_path="../dataset",
     radius=0.0105,
     xlim=(-0.5, 0.5),
-    ylim=(-0.36, 0.36)
+    ylim=(-0.36, 0.36),
+    dist_sigma=0.002
 )
 
 sampler.generate_batch(
