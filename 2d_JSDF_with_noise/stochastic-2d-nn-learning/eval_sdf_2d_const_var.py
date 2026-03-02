@@ -6,8 +6,8 @@ from sdf.stochastic_robot_sdf import RobotSdfCollisionNet
 MODEL_PATH = "sdf_2d.pt"
 DATA_PATH = "../dataset/turtlebot2d_geom.npy"
 
-RADIUS = 0.105
-GT_VAR = 0.02**2
+RADIUS = 0.0105
+GT_VAR = 0.002**2
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -132,8 +132,8 @@ fig, axes = plt.subplots(1, 5, figsize=(20, 4))
 
 for ax in axes:
 
-    robot_xy = np.random.uniform(-1.5, 1.5, size=2)
-    point = np.random.uniform(-2, 2, size=(1, 2))
+    robot_xy = np.random.uniform(-0.5, 0.5, size=2)
+    point = np.random.uniform(-0.36, 0.36, size=(1, 2))
 
     gt = gt_signed_distance(robot_xy, point)[0]
 
@@ -157,8 +157,8 @@ for ax in axes:
         point[0, 0],
         point[0, 1],
         (
-            f"μGT: {gt:.3f}\n"
-            f"μ: {pred_mu:.3f}\n"
+            f"μGT: {gt:.6f}\n"
+            f"μ: {pred_mu:.6f}\n"
             f"σ²GT: {GT_VAR:.6f}\n"
             f"σ²: {pred_var:.6f}"
         ),
@@ -167,8 +167,8 @@ for ax in axes:
     )
 
     ax.set_aspect("equal")
-    ax.set_xlim(-2, 2)
-    ax.set_ylim(-2, 2)
+    ax.set_xlim(-0.5, 0.5)
+    ax.set_ylim(-0.36, 0.36)
     ax.grid(True)
 
 plt.savefig("stochastic_plots/five_random_pose_single_point.png", dpi=200)
@@ -210,8 +210,8 @@ for ax in axes:
         point[0],
         point[1],
         (
-            f"μGT: {gt_mu:.3f}\n"
-            f"μ: {pred_mu:.3f}\n"
+            f"μGT: {gt_mu:.6f}\n"
+            f"μ: {pred_mu:.6f}\n"
             f"σ²GT: {gt_var:.6f}\n"
             f"σ²: {pred_var:.6f}"
         ),
@@ -220,8 +220,8 @@ for ax in axes:
     )
 
     ax.set_aspect("equal")
-    ax.set_xlim(-2, 2)
-    ax.set_ylim(-2, 2)
+    ax.set_xlim(-0.5, 0.5)
+    ax.set_ylim(-0.36, 0.36)
     ax.grid(True)
 
 plt.savefig("stochastic_plots/five_training_pose_single_point_dataset.png", dpi=200)
