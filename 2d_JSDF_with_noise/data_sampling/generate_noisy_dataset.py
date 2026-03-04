@@ -1,14 +1,13 @@
 import os
 import sys
 sys.path.append(os.path.dirname(__file__))
-from turtle_2d_sampler_noisy_data import TurtleBot2DGeometryDataset
+from turtle_2d_sampler import TurtleBot2DRGBDDataset
 
-sampler = TurtleBot2DGeometryDataset(
+sampler = TurtleBot2DRGBDDataset(
     dataset_path="../dataset",
-    radius=0.0105,
-    xlim=(-0.5, 0.5),
-    ylim=(-0.36, 0.36),
-    dist_sigma=0.002
+    radius=0.105, #meters
+    xlim=(-5, 5),
+    ylim=(-3.6, 3.6),
 )
 
 sampler.generate_batch(
