@@ -11,6 +11,9 @@ GT_VAR = 0.02**2
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+total_abs_mu_error = 0.0
+total_sigma_error = 0.0
+total_samples = 0
 
 # -------------------------------------------------
 # MODEL
@@ -46,6 +49,7 @@ def gt_signed_distance(robot_xy, points):
 # -------------------------------------------------
 # SPATIAL ERROR
 # -------------------------------------------------
+
 NUM_POSES = 4
 POINTS_PER_POSE = 4000
 
@@ -71,6 +75,10 @@ for ax in axes.flat:
 
     pred = mu.cpu().numpy()
     error = np.abs(pred - gt)
+
+    # accumulate mean |mu error|
+    total_abs_mu_error += error.sum()
+    total_samples += POINTS_PER_POSE
 
     sc = ax.scatter(points[:, 0], points[:, 1], c=error, s=3, cmap="coolwarm")
 
@@ -109,7 +117,10 @@ for ax in axes.flat:
         )
 
     pred_var = var.cpu().numpy()
+    pred_sigma = np.sqrt(pred_var)
+    sigma_error = np.abs(pred_sigma - 0.02)
 
+    total_sigma_error += sigma_error.sum()
     sc = ax.scatter(points[:, 0], points[:, 1], c=pred_var, s=3, cmap="viridis")
 
     circle = plt.Circle(robot_xy, RADIUS, fill=False, linewidth=2)
@@ -225,5 +236,11 @@ for ax in axes:
     ax.grid(True)
 
 plt.savefig("stochastic_plots/five_training_pose_single_point_dataset.png", dpi=200)
+mean_mu_error = total_abs_mu_error / total_samples
+mean_sigma_error = total_sigma_error / total_samples
 
+print("\n===== GLOBAL METRICS =====")
+print(f"Mean |mu error|        : {mean_mu_error:.6f} m")
+print(f"Mean |sigma error|     : {mean_sigma_error:.6f} m")
+print(f"Target sigma           : 0.020000 m")
 print("Done.")
