@@ -48,48 +48,6 @@ class TurtleBot2DRGBDDatasetSensorVar:
     def compute_sigma(self, ranges):
         return self.a + self.b * ranges**2
     
-
-    def add_range_noise_single_point(self, robot_xy, points_gt):
-        vec = points_gt - robot_xy
-        ranges = np.linalg.norm(vec, axis=1)
-        ranges = np.clip(ranges, 1e-6, None)
-        # unit ray directions
-        dirs = vec / ranges[:, None]
-
-        sigma = self.compute_sigma(ranges)
-
-        noisy_ranges = ranges + np.random.normal(0.0, sigma)
-
-        points_noisy = robot_xy + dirs * noisy_ranges[:, None]
-
-        return points_noisy, sigma
-    def add_range_noise(self, robot_xy, points_gt, num_noise_samples=10):
-
-        vec = points_gt - robot_xy
-        ranges = np.linalg.norm(vec, axis=1)
-        ranges = np.clip(ranges, 1e-6, None)
-
-        dirs = vec / ranges[:, None]
-
-        sigma = self.compute_sigma(ranges)
-
-        noisy_points_all = []
-        sigma_all = []
-
-        for _ in range(num_noise_samples):
-
-            noisy_ranges = ranges + np.random.normal(0.0, sigma)
-            noisy_ranges = np.clip(noisy_ranges, 1e-6, None)
-
-            noisy_pts = robot_xy + dirs * noisy_ranges[:, None]
-
-            noisy_points_all.append(noisy_pts)
-            sigma_all.append(sigma)
-
-        noisy_points_all = np.vstack(noisy_points_all)
-        sigma_all = np.concatenate(sigma_all)
-
-        return noisy_points_all, sigma_all
     # --------------------------------------------------
     # Point sampling
     # --------------------------------------------------
@@ -129,11 +87,9 @@ class TurtleBot2DRGBDDatasetSensorVar:
         batch_size=200,
         points_per_pose=500,
         near_surface_ratio=0.6,
-        num_noise_samples=10
     ):
 
         rows = []
-        
 
         for _ in range(batch_size):
 
@@ -147,29 +103,51 @@ class TurtleBot2DRGBDDatasetSensorVar:
 
             points_gt = np.vstack([pts_surface, pts_uniform])
 
+            # -------------------------------------------------
+            # TRUE DISTANCE
+            # -------------------------------------------------
+
             gt_distance = self.signed_distance(robot_xy, points_gt)
 
-            
-            points_noisy, sigma = self.add_range_noise(robot_xy, points_gt, num_noise_samples=num_noise_samples)
-            gt_distance = np.repeat(gt_distance, num_noise_samples)
-            # points_gt = np.repeat(points_gt, num_noise_samples, axis=0)
+            # -------------------------------------------------
+            # RANGE SENSOR MODEL
+            # -------------------------------------------------
+
+            vec = points_gt - robot_xy
+            ranges = np.linalg.norm(vec, axis=1)
+
+            sigma = self.compute_sigma(ranges)
+
+            noisy_ranges = ranges + np.random.normal(0.0, sigma)
+            noisy_ranges = np.clip(noisy_ranges, 1e-6, None)
+            # convert range → signed distance
+            noisy_distance = noisy_ranges - self.r
+
+            variance = sigma ** 2
+
+            # -------------------------------------------------
+            # FORMAT DATA SAME AS GEOMETRY DATASET
+            # -------------------------------------------------
 
             scale = self.world_scale
-            robot_scaled = robot_xy / scale
-            points_scaled = points_noisy / scale
-            gt_distance_scaled = gt_distance / scale
-            sigma_scaled = sigma / scale
 
-            robot_repeat = np.repeat(robot_scaled[None, :], len(points_noisy), axis=0)
+            robot_scaled = robot_xy / scale
+            points_scaled = points_gt / scale
+            noisy_distance_scaled = noisy_distance / scale
+            gt_distance_scaled = gt_distance / scale
+            variance_scaled = variance / (scale**2)
+
+            robot_repeat = np.repeat(robot_scaled[None, :], len(points_gt), axis=0)
 
             row = np.concatenate(
-                [
-                    robot_repeat,                 # robot_x robot_y
-                    points_scaled,                # noisy measured point
-                    gt_distance_scaled[:, None],  # label: true signed distance
-                    sigma_scaled[:, None],        # heteroscedastic sigma
-                ],
-                axis=1,
+            [
+                robot_repeat,
+                points_scaled,
+                noisy_distance_scaled[:, None],
+                gt_distance_scaled[:, None],
+                variance_scaled[:, None],
+            ],
+            axis=1,
             )
 
             rows.append(row)
@@ -178,8 +156,8 @@ class TurtleBot2DRGBDDatasetSensorVar:
 
         ts = int(time.time())
 
-        np.save(self.dataset_path / f"turtlebot2d_truelabel_{ts}.npy", data)
-        np.save(self.dataset_path / "turtlebot2d_truelabel.npy", data)
+        np.save(self.dataset_path / f"turtlebot2d_rgbd_{ts}.npy", data)
+        np.save(self.dataset_path / "turtlebot2d_rgbd.npy", data)
 
         print("Saved dataset:", data.shape)
 
