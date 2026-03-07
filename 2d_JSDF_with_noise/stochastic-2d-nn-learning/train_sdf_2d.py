@@ -86,7 +86,7 @@ def create_dataset_2d():
     # -------------------------------------------------
     epochs = 80000
     best_val = 1e9
-    beta_KL = 1e-2
+    beta_KL = 1e-3
     for e in range(epochs):
 
         t0 = time.time()
@@ -102,7 +102,7 @@ def create_dataset_2d():
             pred = model(x_train)
 
             mu, logvar = torch.chunk(pred, 2, dim=-1)
-
+            logvar = torch.clamp(logvar, -10.0, 5.0)
             # --- NLL ---
             inv_var = torch.exp(-logvar)
             nll = 0.5 * (logvar + (y_train - mu) ** 2 * inv_var)
@@ -118,7 +118,11 @@ def create_dataset_2d():
                 - 1.0
             )
 
-            train_loss = nll.mean() + beta_KL * kl.mean()
+            # train_loss = nll.mean() + beta_KL * kl.mean()
+            if e < 2000:
+                train_loss = nll.mean()
+            else:
+                train_loss = nll.mean() + beta_KL * kl.mean()
             # Diagnostic MSEs
             mse_mu_train = F.mse_loss(mu, prior_mu_train)
             mse_var_train = F.mse_loss(var, prior_var_train)
