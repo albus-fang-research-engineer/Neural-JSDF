@@ -353,8 +353,8 @@ for ax in axes:
     robot_xy = data[idx, 0:2]
     point    = data[idx, 2:4]
 
-    gt_mu  = data[idx, 5]
-    gt_var = data[idx, 6]
+    gt_mu  = data[idx, 4]
+    gt_var = data[idx, 5] ** 2
 
     # model input
     x_input = data[idx, 0:4][None, :]

@@ -15,12 +15,13 @@ def create_dataset_2d():
     # -------------------------------------------------
     # LOAD DATASET
     # -------------------------------------------------
-    data = np.load("../dataset/turtlebot2d_geom.npy")
+    data = np.load("../dataset/turtlebot2d_truelabel.npy")
 
     x = torch.tensor(data[:, 0:4], **tensor_args)   # [xr, yr, px, py]
     y = torch.tensor(data[:, 4:5], **tensor_args)   # [distance]
-    prior_mu  = torch.tensor(data[:, 5:6], **tensor_args)
-    prior_var = torch.tensor(data[:, 6:7], **tensor_args)
+    prior_mu = y
+    sigma = torch.tensor(data[:, 5:6], **tensor_args)
+    prior_var = sigma ** 2
     print("Dataset:", x.shape, y.shape)
 
     # -------------------------------------------------

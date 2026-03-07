@@ -21,7 +21,7 @@ class TurtleBot2DRGBDDatasetNoisyDataTrueLabel:
         self.ylim = ylim
         self.a = 0.002
         self.b = 0.0015
-        self.world_scale = 10.0
+        self.world_scale = 1.0
 
         if seed is not None:
             np.random.seed(seed)
@@ -49,7 +49,7 @@ class TurtleBot2DRGBDDatasetNoisyDataTrueLabel:
         return self.a + self.b * ranges**2
     
 
-    def add_range_noise(self, robot_xy, points_gt):
+    def add_range_noise_single_point(self, robot_xy, points_gt):
         vec = points_gt - robot_xy
         ranges = np.linalg.norm(vec, axis=1)
         ranges = np.clip(ranges, 1e-6, None)
@@ -63,7 +63,33 @@ class TurtleBot2DRGBDDatasetNoisyDataTrueLabel:
         points_noisy = robot_xy + dirs * noisy_ranges[:, None]
 
         return points_noisy, sigma
+    def add_range_noise(self, robot_xy, points_gt, num_noise_samples=10):
 
+        vec = points_gt - robot_xy
+        ranges = np.linalg.norm(vec, axis=1)
+        ranges = np.clip(ranges, 1e-6, None)
+
+        dirs = vec / ranges[:, None]
+
+        sigma = self.compute_sigma(ranges)
+
+        noisy_points_all = []
+        sigma_all = []
+
+        for _ in range(num_noise_samples):
+
+            noisy_ranges = ranges + np.random.normal(0.0, sigma)
+            noisy_ranges = np.clip(noisy_ranges, 1e-6, None)
+
+            noisy_pts = robot_xy + dirs * noisy_ranges[:, None]
+
+            noisy_points_all.append(noisy_pts)
+            sigma_all.append(sigma)
+
+        noisy_points_all = np.vstack(noisy_points_all)
+        sigma_all = np.concatenate(sigma_all)
+
+        return noisy_points_all, sigma_all
     # --------------------------------------------------
     # Point sampling
     # --------------------------------------------------
@@ -103,6 +129,7 @@ class TurtleBot2DRGBDDatasetNoisyDataTrueLabel:
         batch_size=200,
         points_per_pose=500,
         near_surface_ratio=0.6,
+        num_noise_samples=10
     ):
 
         rows = []
@@ -123,8 +150,9 @@ class TurtleBot2DRGBDDatasetNoisyDataTrueLabel:
             gt_distance = self.signed_distance(robot_xy, points_gt)
 
             
-            points_noisy, sigma = self.add_range_noise(robot_xy, points_gt)
-
+            points_noisy, sigma = self.add_range_noise(robot_xy, points_gt, num_noise_samples=num_noise_samples)
+            gt_distance = np.repeat(gt_distance, num_noise_samples)
+            # points_gt = np.repeat(points_gt, num_noise_samples, axis=0)
 
             scale = self.world_scale
             robot_scaled = robot_xy / scale
@@ -132,7 +160,7 @@ class TurtleBot2DRGBDDatasetNoisyDataTrueLabel:
             gt_distance_scaled = gt_distance / scale
             sigma_scaled = sigma / scale
 
-            robot_repeat = np.repeat(robot_scaled[None, :], len(points_gt), axis=0)
+            robot_repeat = np.repeat(robot_scaled[None, :], len(points_noisy), axis=0)
 
             row = np.concatenate(
                 [
@@ -150,8 +178,8 @@ class TurtleBot2DRGBDDatasetNoisyDataTrueLabel:
 
         ts = int(time.time())
 
-        np.save(self.dataset_path / f"turtlebot2d_geom_{ts}.npy", data)
-        np.save(self.dataset_path / "turtlebot2d_geom.npy", data)
+        np.save(self.dataset_path / f"turtlebot2d_truelabel_{ts}.npy", data)
+        np.save(self.dataset_path / "turtlebot2d_truelabel.npy", data)
 
         print("Saved dataset:", data.shape)
 
