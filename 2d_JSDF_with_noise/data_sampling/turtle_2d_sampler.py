@@ -3,7 +3,7 @@ import time
 from pathlib import Path
 
 
-class TurtleBot2DRGBDDataset:
+class TurtleBot2DRGBDDatasetNoisyDataTrueLabel:
 
     def __init__(
         self,
