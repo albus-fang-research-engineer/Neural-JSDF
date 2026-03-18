@@ -15,7 +15,7 @@ def create_dataset_2d():
     # -------------------------------------------------
     # LOAD DATASET
     # -------------------------------------------------
-    data = np.load("../dataset/turtlebot2d_truelabel.npy")
+    data = np.load("../dataset/turtlebot2d_rgbd.npy")
 
     x = torch.tensor(data[:, 0:4], **tensor_args)     # robot + point
     y = torch.tensor(data[:, 4:5], **tensor_args)     # noisy measurement
@@ -159,7 +159,7 @@ def create_dataset_2d():
                 {
                     "model": model.state_dict(),
                 },
-                "sdf_2d.pt"
+                "sdf_2d_rgbd_truepoint_noisylabel.pt"
             )
 
         # print(

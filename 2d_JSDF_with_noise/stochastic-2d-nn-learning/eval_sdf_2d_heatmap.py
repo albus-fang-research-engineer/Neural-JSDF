@@ -14,9 +14,9 @@ from obstacle_eval_utils import (
     demo_visible_obstacles_and_points
 )
 
-MODEL_PATH = "sdf_2d_rgbd_truepoint_noisylabel.pt"
+MODEL_PATH = "sdf_2d.pt"
 RADIUS = 0.105
-RADIUS_PLOT_FACTOR = 2
+
 def predict_mu_var(model, x_tensor, logvar_min=-20.0, logvar_max=10.0):
     """
     model(x) -> [mu, logvar] concatenated along last dim (shape [B,2] for out_channels=1)
@@ -65,8 +65,8 @@ N = 20000
 
 robot_xy = np.array([0.0, 0.0])  # fixed robot for visualization
 
-px = np.random.uniform(-5, 5, N)
-py = np.random.uniform(-5, 5, N)
+px = np.random.uniform(-2, 2, N)
+py = np.random.uniform(-2, 2, N)
 
 points = np.stack([px, py], axis=1)
 
@@ -148,10 +148,10 @@ for ax in axes.flat:
     # ----------------------------
     # random robot pose
     # ----------------------------
-    robot_xy = np.random.uniform(-4.5, 4.5, size=2)
+    robot_xy = np.random.uniform(-1.5, 1.5, size=2)
 
-    px = np.random.uniform(-5, 5, POINTS_PER_POSE)
-    py = np.random.uniform(-5, 5, POINTS_PER_POSE)
+    px = np.random.uniform(-2, 2, POINTS_PER_POSE)
+    py = np.random.uniform(-2, 2, POINTS_PER_POSE)
     points = np.stack([px, py], axis=1)
 
     gt = gt_signed_distance(robot_xy, points)
@@ -187,13 +187,13 @@ for ax in axes.flat:
     )
 
     # robot footprint
-    circle = plt.Circle(robot_xy, RADIUS * RADIUS_PLOT_FACTOR,color="red",edgecolor="black",linewidth=1.5,alpha=0.9,zorder=5)
+    circle = plt.Circle(robot_xy, RADIUS, fill=False, linewidth=2)
     ax.add_patch(circle)
 
     ax.set_title(f"Robot @ {robot_xy.round(2)}")
     ax.set_aspect("equal")
-    ax.set_xlim(-5, 5)
-    ax.set_ylim(-5, 5)
+    ax.set_xlim(-2, 2)
+    ax.set_ylim(-2, 2)
     ax.grid(True)
 
 fig.colorbar(sc, ax=axes.ravel().tolist(), location="right", label="|Prediction Error| [m]")
@@ -220,10 +220,10 @@ fig_var, axes_var = plt.subplots(2, 2, figsize=(10, 10))
 
 for ax in axes_var.flat:
 
-    robot_xy = np.random.uniform(-4.5, 4.5, size=2)
+    robot_xy = np.random.uniform(-1.5, 1.5, size=2)
 
-    px = np.random.uniform(-5, 5, POINTS_PER_POSE)
-    py = np.random.uniform(-5, 5, POINTS_PER_POSE)
+    px = np.random.uniform(-2, 2, POINTS_PER_POSE)
+    py = np.random.uniform(-2, 2, POINTS_PER_POSE)
     points = np.stack([px, py], axis=1)
 
     x_input = np.concatenate(
@@ -249,13 +249,13 @@ for ax in axes_var.flat:
         s=3
     )
 
-    circle = plt.Circle(robot_xy, RADIUS*RADIUS_PLOT_FACTOR,color="red",edgecolor="black",linewidth=1.5,alpha=0.9,zorder=5)
+    circle = plt.Circle(robot_xy, RADIUS, fill=False, linewidth=2)
     ax.add_patch(circle)
 
     ax.set_title(f"Predicted σ² @ {robot_xy.round(2)}")
     ax.set_aspect("equal")
-    ax.set_xlim(-5, 5)
-    ax.set_ylim(-5, 5)
+    ax.set_xlim(-2, 2)
+    ax.set_ylim(-2, 2)
     ax.grid(True)
 
 fig_var.colorbar(sc, ax=axes_var.ravel().tolist(), location="right", label="Predicted variance σ²")
@@ -276,10 +276,10 @@ if NUM_TEST == 1:
 for ax in axes:
 
     # random robot pose
-    robot_xy = np.random.uniform(-4.5, 4.5, size=2)
+    robot_xy = np.random.uniform(-1.5, 1.5, size=2)
 
     # one random query point
-    point = np.random.uniform(-5, 5, size=(1, 2))
+    point = np.random.uniform(-2, 2, size=(1, 2))
 
     # ground truth
     gt = gt_signed_distance(robot_xy, point)[0]
@@ -307,7 +307,7 @@ for ax in axes:
     # ----------------------------
     ax.scatter(point[0, 0], point[0, 1], s=80)
 
-    circle = plt.Circle(robot_xy, RADIUS*RADIUS_PLOT_FACTOR,color="red",edgecolor="black",linewidth=1.5,alpha=0.9,zorder=5)
+    circle = plt.Circle(robot_xy, RADIUS, fill=False, linewidth=2)
     ax.add_patch(circle)
 
     ax.text(
@@ -321,8 +321,8 @@ for ax in axes:
 
     ax.set_title(f"Robot @ {robot_xy.round(2)}")
     ax.set_aspect("equal")
-    ax.set_xlim(-5, 5)
-    ax.set_ylim(-5, 5)
+    ax.set_xlim(-2, 2)
+    ax.set_ylim(-2, 2)
     ax.grid(True)
 
 plt.tight_layout()
@@ -335,7 +335,7 @@ print("Saved: five_random_pose_single_point.png")
 # -------------------------------------------------
 NUM_TEST = 5
 
-data = np.load("../dataset/turtlebot2d_rgbd.npy")
+data = np.load("../dataset/turtlebot2d_geom.npy")
 
 fig, axes = plt.subplots(1, NUM_TEST, figsize=(4 * NUM_TEST, 4))
 if NUM_TEST == 1:
@@ -379,7 +379,7 @@ for ax in axes:
     # ----------------------------
     ax.scatter(point[0], point[1], s=80)
 
-    circle = plt.Circle(robot_xy, RADIUS*RADIUS_PLOT_FACTOR,color="red",edgecolor="black",linewidth=1.5,alpha=0.9,zorder=5)
+    circle = plt.Circle(robot_xy, RADIUS, fill=False, linewidth=2)
     ax.add_patch(circle)
 
     ax.text(
@@ -395,10 +395,10 @@ for ax in axes:
         verticalalignment="bottom"
     )
 
-    ax.set_title(f"Robot @ {robot_xy.round(5)}")
+    ax.set_title(f"Robot @ {robot_xy.round(2)}")
     ax.set_aspect("equal")
-    ax.set_xlim(-5, 5)
-    ax.set_ylim(-5, 5)
+    ax.set_xlim(-2, 2)
+    ax.set_ylim(-2, 2)
     ax.grid(True)
 
 plt.tight_layout()
