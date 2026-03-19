@@ -56,7 +56,10 @@ class TurtleBot2DLidarDatasetSensorVar:
         mask2 = (ranges >= 0.8) & (ranges < 1.8)
 
         # segment 3: quadratic growth
-        mask3 = ranges >= 1.8
+        mask3 = (ranges >= 1.8) & (ranges < 2.6)
+        
+        # segment 4: far range (slow linear growth ~0.01 * d)
+        mask4 = ranges >= 2.6
 
         sigma[mask1] = 0.01
         sigma[mask2] = 0.01 + 0.01 * (ranges[mask2] - 0.8)
@@ -67,7 +70,15 @@ class TurtleBot2DLidarDatasetSensorVar:
             + 0.01 * (ranges[mask3] - 1.8)
             + 0.036 * (ranges[mask3] - 1.8) ** 2
         )
+        # Anchor at 2.6 for continuity
+        d_anchor = 2.6 - 1.8
+        sigma_anchor = (
+            0.02
+            + 0.01 * d_anchor
+            + 0.036 * d_anchor**2
+        )
 
+        sigma[mask4] = sigma_anchor + 0.006 * (ranges[mask4] - 2.6)
         return sigma
     
     # --------------------------------------------------
@@ -103,7 +114,6 @@ class TurtleBot2DLidarDatasetSensorVar:
     # --------------------------------------------------
     # Dataset generation
     # --------------------------------------------------
-
     def generate_batch(
         self,
         batch_size=200,
@@ -112,7 +122,98 @@ class TurtleBot2DLidarDatasetSensorVar:
     ):
 
         rows = []
+        K = 10
+        for _ in range(batch_size):
 
+            robot_xy = self.sample_robot_pose()
+
+            n_surface = int(points_per_pose * near_surface_ratio)
+            n_uniform = points_per_pose - n_surface
+
+            pts_surface = self.sample_points_near_surface(robot_xy, n_surface)
+            pts_uniform = self.sample_points_uniform(n_uniform)
+
+            points_gt = np.vstack([pts_surface, pts_uniform])
+
+            # -------------------------------------------------
+            # TRUE DISTANCE
+            # -------------------------------------------------
+
+            gt_distance = self.signed_distance(robot_xy, points_gt)
+
+            # -------------------------------------------------
+            # RANGE SENSOR MODEL (K samples per point)
+            # -------------------------------------------------
+
+            vec = points_gt - robot_xy
+            ranges = np.linalg.norm(vec, axis=1)           # (N,)
+
+            sigma = self.compute_sigma(ranges)             # (N,)
+
+            # ---- repeat base data K times ----
+            ranges_rep = np.repeat(ranges, K)              # (N*K,)
+            sigma_rep = np.repeat(sigma, K)                # (N*K,)
+            points_rep = np.repeat(points_gt, K, axis=0)   # (N*K, 2)
+
+            # ---- sample noise ----
+            noise = np.random.normal(0.0, sigma_rep)       # (N*K,)
+            noisy_ranges = ranges_rep + noise
+            noisy_ranges = np.clip(noisy_ranges, 1e-6, None)
+
+            # ---- convert to signed distance ----
+            noisy_distance = noisy_ranges - self.r         # (N*K,)
+            gt_distance_rep = np.repeat(gt_distance, K)    # (N*K,)
+
+            variance_rep = sigma_rep ** 2                  # (N*K,)
+
+            # -------------------------------------------------
+            # FORMAT DATA SAME AS GEOMETRY DATASET
+            # -------------------------------------------------
+
+            scale = self.world_scale
+
+            robot_scaled = robot_xy / scale
+            points_scaled = points_rep / scale
+
+            noisy_distance_scaled = noisy_distance / scale
+            gt_distance_scaled = gt_distance_rep / scale
+            variance_scaled = variance_rep / (scale**2)
+
+            robot_repeat = np.repeat(robot_scaled[None, :], len(points_rep), axis=0)
+
+            row = np.concatenate(
+            [
+                robot_repeat,
+                points_scaled,
+                noisy_distance_scaled[:, None],
+                gt_distance_scaled[:, None],
+                variance_scaled[:, None],
+            ],
+            axis=1,
+            )
+
+            rows.append(row)
+
+        data = np.vstack(rows).astype(np.float32)
+
+        ts = int(time.time())
+
+        np.save(self.dataset_path / f"turtlebot2d_lidar_{ts}.npy", data)
+        np.save(self.dataset_path / "turtlebot2d_lidar.npy", data)
+
+        print("Saved dataset:", data.shape)
+
+        return data
+    
+    def generate_batch_single_measurement(
+        self,
+        batch_size=200,
+        points_per_pose=500,
+        near_surface_ratio=0.6,
+    ):
+
+        rows = []
+        K = 10
         for _ in range(batch_size):
 
             robot_xy = self.sample_robot_pose()

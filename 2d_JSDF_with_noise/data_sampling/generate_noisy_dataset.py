@@ -1,9 +1,9 @@
 import os
 import sys
 sys.path.append(os.path.dirname(__file__))
-from turtle_2d_sampler import TurtleBot2DRGBDDatasetSensorVar
+from turtle_2d_sampler_lidar import TurtleBot2DLidarDatasetSensorVar
 
-sampler = TurtleBot2DRGBDDatasetSensorVar(
+sampler = TurtleBot2DLidarDatasetSensorVar(
     dataset_path="../dataset",
     radius=0.105, #meters
     xlim=(-5, 5),
@@ -12,6 +12,6 @@ sampler = TurtleBot2DRGBDDatasetSensorVar(
 )
 
 sampler.generate_batch(
-    batch_size=600,          # number of robot poses
-    points_per_pose=1500
+    batch_size=800,          # number of robot poses
+    points_per_pose=800
 )

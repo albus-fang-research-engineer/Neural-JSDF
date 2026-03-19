@@ -15,7 +15,7 @@ def create_dataset_2d():
     # -------------------------------------------------
     # LOAD DATASET
     # -------------------------------------------------
-    data = np.load("../dataset/turtlebot2d_rgbd.npy")
+    data = np.load("../dataset/turtlebot2d_lidar.npy")
 
     x = torch.tensor(data[:, 0:4], **tensor_args)     # robot + point
     y = torch.tensor(data[:, 4:5], **tensor_args)     # noisy measurement
