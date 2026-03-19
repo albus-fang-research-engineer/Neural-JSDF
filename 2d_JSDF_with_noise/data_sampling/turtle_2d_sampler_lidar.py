@@ -95,7 +95,7 @@ class TurtleBot2DLidarDatasetSensorVar:
 
         return np.stack([px, py], axis=1)
     def sample_points_near_surface(
-        self, robot_xy, num_points, offset_range=(-0.06, 0.2)
+        self, robot_xy, num_points, offset_range=(-0.06, 0.56)
     ):
         angles = np.random.uniform(0, 2 * np.pi, num_points)
         offsets = np.random.uniform(offset_range[0], offset_range[1], num_points)
@@ -118,7 +118,7 @@ class TurtleBot2DLidarDatasetSensorVar:
         self,
         batch_size=200,
         points_per_pose=500,
-        near_surface_ratio=0.6,
+        near_surface_ratio=0.5,
     ):
 
         rows = []

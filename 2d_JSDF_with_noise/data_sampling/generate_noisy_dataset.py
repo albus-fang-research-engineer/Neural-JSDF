@@ -7,11 +7,11 @@ sampler = TurtleBot2DLidarDatasetSensorVar(
     dataset_path="../dataset",
     radius=0.105, #meters
     xlim=(-5, 5),
-    # ylim=(-3.6, 3.6),
-    ylim=(-5, 5)
+    ylim=(-3.6, 3.6),
+    # ylim=(-5, 5)
 )
 
 sampler.generate_batch(
     batch_size=800,          # number of robot poses
-    points_per_pose=800
+    points_per_pose=1500
 )
