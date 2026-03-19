@@ -15,7 +15,7 @@ from obstacle_eval_utils import (
 )
 scale_factor = 10.0
 # MODEL_PATH = "sdf_2d_rgbd_truepoint_noisylabel.pt"
-MODEL_PATH = "sdf_2d.pt"
+MODEL_PATH = "sdf_2d_lidar_mesh_units.pt"
 RADIUS = 0.105 / scale_factor
 RADIUS_PLOT_FACTOR = 2
 def predict_mu_var(model, x_tensor, logvar_min=-20.0, logvar_max=10.0):
@@ -39,24 +39,41 @@ def gt_distance_sigma(robot_xy, points, scale_factor=10.0):
     # ranges in mesh units
     ranges_mesh = np.linalg.norm(points - robot_xy, axis=1)
 
-    # convert to meters for the physical noise model
+    # convert to meters for physical noise model
     ranges_m = ranges_mesh * scale_factor
 
     sigma_m = np.empty_like(ranges_m)
 
+    # --- masks in METERS ---
     mask1 = ranges_m < 0.8
     mask2 = (ranges_m >= 0.8) & (ranges_m < 1.8)
-    mask3 = ranges_m >= 1.8
+    mask3 = (ranges_m >= 1.8) & (ranges_m < 2.6)
+    mask4 = ranges_m >= 2.6
 
+    # --- Segment 1 ---
     sigma_m[mask1] = 0.01
+
+    # --- Segment 2 ---
     sigma_m[mask2] = 0.01 + 0.01 * (ranges_m[mask2] - 0.8)
 
-    sigma_18 = 0.01 + 0.01 * (1.8 - 0.8)  # 0.02
+    # --- Segment 3 (quadratic bump) ---
+    d3 = ranges_m[mask3] - 1.8
     sigma_m[mask3] = (
-        sigma_18
-        + 0.01 * (ranges_m[mask3] - 1.8)
-        + 0.036 * (ranges_m[mask3] - 1.8) ** 2
+        0.02
+        + 0.01 * d3
+        + 0.036 * d3**2
     )
+
+    # --- Anchor at 2.6 ---
+    d_anchor = 2.6 - 1.8
+    sigma_anchor = (
+        0.02
+        + 0.01 * d_anchor
+        + 0.036 * d_anchor**2
+    )
+
+    # --- Segment 4 (slow linear growth) ---
+    sigma_m[mask4] = sigma_anchor + 0.006 * (ranges_m[mask4] - 2.6)
 
     # convert back to mesh units
     sigma_mesh = sigma_m / scale_factor
@@ -135,30 +152,6 @@ rmse = np.sqrt(np.mean((pred - gt) ** 2))
 print("MAE:", mae)
 print("RMSE:", rmse)
 
-
-# -------------------------------------------------
-# PLOT: PREDICTED vs GT
-# -------------------------------------------------
-plt.figure(figsize=(6, 6))
-
-plt.scatter(gt, pred, s=2, alpha=0.3)
-
-lims = [
-    np.min([gt.min(), pred.min()]),
-    np.max([gt.max(), pred.max()])
-]
-
-plt.plot(lims, lims, 'k--')  # y = x line
-
-plt.xlabel("Ground Truth Distance [m]")
-plt.ylabel("Predicted Distance [m]")
-plt.title("Neural SDF Prediction vs Ground Truth")
-
-plt.grid(True)
-plt.tight_layout()
-plt.savefig("stochastic_plots/pred_vs_gt.png", dpi=200)
-
-print("Saved: pred_vs_gt.png")
 
 
 NUM_POSES = 4
@@ -338,7 +331,7 @@ for ax in axes:
         point[0, 0],
         point[0, 1],
         # f"GT: {gt:.3f}\nPred: {pred:.3f}",
-        f"μGT: {gt:.3f}\nμ: {pred:.3f}\nσ²: {pred_var:.6f}\nσ²GT: {gt_sigma**2:.6f}",
+        f"μGT: {gt:.3f}\nμ: {pred:.3f}\nσ: {np.sqrt(pred_var):.6f}\nσGT: {gt_sigma:.6f}",
         fontsize=9,
         verticalalignment="bottom"
     )
@@ -412,8 +405,8 @@ for ax in axes:
         (
             f"μGT: {gt_mu:.3f}\n"
             f"μ: {pred_mu:.3f}\n"
-            f"σ²GT: {gt_var:.6f}\n"
-            f"σ²: {pred_var:.6f}"
+            f"σGT: {np.sqrt(gt_var):.6f}\n"
+            f"σ: {np.sqrt(pred_var):.6f}"
         ),
         fontsize=9,
         verticalalignment="bottom"
