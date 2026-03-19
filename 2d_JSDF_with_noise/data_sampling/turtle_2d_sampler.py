@@ -9,8 +9,8 @@ class TurtleBot2DRGBDDatasetSensorVar:
         self,
         dataset_path,
         radius=0.105,
-        xlim=(-2, 2),
-        ylim=(-2, 2),
+        xlim=(-5, 5),
+        ylim=(-5, 5),
         seed=None,
     ):
         self.dataset_path = Path(dataset_path)
@@ -21,7 +21,7 @@ class TurtleBot2DRGBDDatasetSensorVar:
         self.ylim = ylim
         self.a = 0.002
         self.b = 0.0015
-        self.world_scale = 1.0
+        self.world_scale = 10.0
 
         if seed is not None:
             np.random.seed(seed)
