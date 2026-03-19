@@ -159,7 +159,7 @@ def create_dataset_2d():
                 {
                     "model": model.state_dict(),
                 },
-                "sdf_2d_rgbd_truepoint_noisylabel.pt"
+                "sdf_2d_lidar_mesh_units.pt"
             )
 
         # print(
