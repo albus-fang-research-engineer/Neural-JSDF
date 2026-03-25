@@ -20,12 +20,13 @@ services:
 
     volumes:
       - ../:/root/Neural-JSDF
-
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
     working_dir: /root/Neural-JSDF
 
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
     stdin_open: true
     tty: true

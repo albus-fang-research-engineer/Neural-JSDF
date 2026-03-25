@@ -20,6 +20,24 @@ RUN pip install --no-cache-dir \
     matplotlib>=3.7 \
     pyyaml>=6.0
 
+    # ===== System dependencies =====
+RUN apt-get update && apt-get install -y \
+    libgl1 \
+    libgl1-mesa-glx \
+    libgl1-mesa-dri \
+    libglib2.0-0 \
+    libspatialindex-dev \
+    && rm -rf /var/lib/apt/lists/*
+# Fix urdfpy + networkx conflict
+RUN pip install --no-cache-dir \
+    networkx==2.8.8 \
+    rtree \
+    open3d \
+    lxml\
+    trimesh\
+    pycollada
+
+RUN pip install --no-cache-dir urdfpy --no-deps
 # Set working directory
 WORKDIR /root/Neural-JSDF
 
