@@ -63,34 +63,46 @@ def main():
     print(f"Max abs error:  {np.max(np.abs(gt_vals - pred_vals)):.4f} m")
     print(f"Min GT dist:    {np.min(gt_vals):.4f} m")
     print(f"Min Pred dist:  {np.min(pred_vals):.4f} m")
-    # ====== MULTI-POINT EVALUATION ======
-    num_points = 200
-
-    points = np.random.uniform(
-        low=[-0.5, -0.5, 0.2],
-        high=[0.5, 0.5, 0.8],
-        size=(num_points, 3)
-    )
+    
+    # ====== MULTI-CONFIG + MULTI-POINT EVALUATION ======
+    num_configs = 50
+    num_points_per_config = 100
 
     all_gt = []
     all_pred = []
 
-    print(f"\nEvaluating {num_points} random points...\n")
+    print(f"\nEvaluating {num_configs} configs × {num_points_per_config} points...\n")
 
-    for idx, point in enumerate(points):
+    for c in range(num_configs):
 
-        distances = robot.compute_link_distances(point)
-        pred_dist = njsdf.predict(q, point).squeeze()
+        # Sample random configuration
+        q = np.random.uniform(-1.0, 1.0, robot.num_joints)
+        robot.set_q(q)
+        
+        ee_pos = robot.get_ee_position()
+        if ee_pos[2] < 0.2:
+            continue
+        # Sample points for this config
+        points = np.random.uniform(
+            low=[-0.5, -0.5, 0.0],
+            high=[0.5, 0.5, 0.8],
+            size=(num_points_per_config, 3)
+        )
 
-        for i, (k, v) in enumerate(distances.items()):
-            gt = v
-            pred = pred_dist[i]
+        for point in points:
 
-            all_gt.append(gt)
-            all_pred.append(pred)
+            distances = robot.compute_link_distances(point)
+            pred_dist = njsdf.predict(q, point).squeeze()
 
-        if (idx + 1) % 20 == 0:
-            print(f"Processed {idx+1}/{num_points} points")
+            for i, (k, v) in enumerate(distances.items()):
+                gt = v
+                pred = pred_dist[i]
+
+                all_gt.append(gt)
+                all_pred.append(pred)
+
+        if (c + 1) % 5 == 0:
+            print(f"Processed {c+1}/{num_configs} configs")
 
     # Convert to arrays
     all_gt = np.array(all_gt)
@@ -99,7 +111,7 @@ def main():
     errors = np.abs(all_gt - all_pred)
 
     print("\n=== Aggregate Results ===")
-    print(f"Total samples: {len(errors)}  (points × links)")
+    print(f"Total samples: {len(errors)}  (configs × points × links)")
     print(f"Mean abs error: {np.mean(errors):.6f} m")
     print(f"Median abs error: {np.median(errors):.6f} m")
     print(f"Max abs error: {np.max(errors):.6f} m")
