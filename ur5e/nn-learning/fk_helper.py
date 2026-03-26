@@ -107,3 +107,12 @@ class RobotSDFHelper:
             geometries.append(sphere)
 
         o3d.visualization.draw_geometries(geometries)
+    
+    def get_ee_position(self):
+        fk = self.robot.link_fk(cfg=self._robot_joints)
+
+        # Use correct EE link
+        ee_link = self.robot.link_map["wrist_3_link"]  # or "tool0" if available
+
+        ee_transform = fk[ee_link]
+        return ee_transform[:3, 3]
