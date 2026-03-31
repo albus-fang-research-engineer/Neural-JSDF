@@ -10,7 +10,8 @@ def main():
 
 
     # ====== LOAD N-JSDF MODEL ======
-    model_path = "/root/Neural-JSDF/ur5e/nn-learning/ur5e_sdf_256x5_mesh.pt"  # change if needed
+
+    model_path = "/root/Neural-JSDF/ur5e/nn-learning/ur5e_sdf_256x5_mesh_4000_configs.pt"  # change if needed
 
     njsdf = NJSDFHelper(
         model_path=model_path,
@@ -72,7 +73,7 @@ def main():
     all_pred = []
 
     print(f"\nEvaluating {num_configs} configs × {num_points_per_config} points...\n")
-
+    records = []
     for c in range(num_configs):
 
         # Sample random configuration
@@ -97,9 +98,17 @@ def main():
             for i, (k, v) in enumerate(distances.items()):
                 gt = v
                 pred = pred_dist[i]
-
+                err = abs(gt-pred)
                 all_gt.append(gt)
                 all_pred.append(pred)
+                records.append({
+                    "error": err,
+                    "gt": gt,
+                    "pred": pred,
+                    "config": q.copy(),
+                    "point": point.copy(),
+                    "link": k
+                })
 
         if (c + 1) % 5 == 0:
             print(f"Processed {c+1}/{num_configs} configs")
@@ -122,7 +131,44 @@ def main():
     
     # Visualize
     # robot.visualize(point)-
+    # ====== QUANTILES ======
+    quantiles = [0.5, 0.75, 0.9, 0.95, 0.99]
 
+    print("\n=== Error Quantiles ===")
+    for q in quantiles:
+        val = np.quantile(errors, q)
+        print(f"{int(q*100)}th percentile: {val:.6f} m")
+    # Top-K worst errors (tail behavior)
+    k = int(0.01 * len(errors))  # top 1%
+    top_k_errors = np.sort(errors)[-k:]
+
+    print("\n=== Tail Error Stats (Top 1%) ===")
+    print(f"Mean (top 1%): {np.mean(top_k_errors):.6f} m")
+    print(f"Min (top 1%):  {np.min(top_k_errors):.6f} m")
+    print(f"Max (top 1%):  {np.max(top_k_errors):.6f} m")
+    # Sort by error descending
+    records_sorted = sorted(records, key=lambda x: x["error"], reverse=True)
+
+    K = 10
+    top_k = records_sorted[:K]
+    print("\n=== Top-K Worst Errors ===")
+    for i, r in enumerate(top_k):
+        print(f"\{i+1}")
+        print(f"Error: {r['error']:.6f}")
+        print(f"GT: {r['gt']:.6f}, Pred: {r['pred']:.6f}")
+        print(f"Link: {r['link']}")
+        print(f"Point: {r['point']}")
+        print(f"Config (q): {r['config']}")
+    high_err = records_sorted[0]
+
+    robot.set_q(high_err["config"])
+    robot.visualize(high_err["point"])
+    import matplotlib.pyplot as plt
+
+    plt.scatter(all_gt, errors, s=1)
+    plt.xlabel("GT Distance")
+    plt.ylabel("Error")
+    plt.show()
 
 if __name__ == "__main__":
     main()

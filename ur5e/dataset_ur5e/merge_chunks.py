@@ -48,6 +48,6 @@ def concat_chunks(input_dir, prefix="mixed_dataset_chunk_", output_path="ur5e_da
 if __name__ == "__main__":
     # ===== CHANGE THESE =====
     input_dir = "./"
-    output_path = "./ur5e_mixed_dataset_full.npy"
+    output_path = "./ur5e_mixed_dataset_full_4000_configs.npy"
 
     concat_chunks(input_dir, output_path=output_path)

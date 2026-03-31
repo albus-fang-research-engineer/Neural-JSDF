@@ -37,7 +37,7 @@ def create_dataset(robot_name):
     tensor_args = {'device': device, 'dtype': torch.float32}
     #    data = loadmat('../weights/table_beeger.mat')['data']
     # data = loadmat('../data-sampling/datasets/data_mesh_test.mat')['dataset']
-    data = np.load("../dataset_ur5e/ur5e_mixed_dataset_full.npy")
+    data = np.load("../dataset_ur5e/ur5e_mixed_dataset_full_4000_configs.npy")
     # idx_good = (data[:,10:-1] > -0.03).all(1)
     # data = data[idx_good, :]
     # data = data[torch.randperm(data.shape[0])]
@@ -69,7 +69,7 @@ def create_dataset(robot_name):
     s = 256
     n_layers = 5
     skips = []
-    fname = 'ur5e_sdf_%dx%d_mesh.pt'%(s,n_layers)
+    fname = 'ur5e_sdf_%dx%d_mesh_4000_configs.pt'%(s,n_layers)
     if skips == []:
         n_layers-=1
     nn_model = RobotSdfCollisionNet(in_channels=dof, out_channels=y.shape[1], layers=[s] * n_layers, skips=skips)
